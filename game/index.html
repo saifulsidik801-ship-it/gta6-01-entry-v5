@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>Marisol Bay — open-world crime</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #1a0f2e; font-family: Arial, Helvetica, sans-serif; }
+  #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  #hud { position: fixed; inset: 0; pointer-events: none; color: #fff; user-select: none; }
+  .panel { background: rgba(12, 14, 26, 0.70); border: 1px solid rgba(255,255,255,0.14); border-radius: 8px; padding: 8px 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.45); }
+  .panel h3 { margin: 0 0 2px; font-size: 15px; letter-spacing: 0.4px; }
+  .panel .sub { font-size: 12px; color: #ffd23e; }
+  .bar { height: 7px; background: rgba(255,255,255,0.18); border-radius: 4px; overflow: hidden; margin-top: 4px; }
+  .bar > i { display: block; height: 100%; background: #ffd23e; }
+  #mission { position: absolute; top: 12px; left: 12px; width: 330px; }
+  #mission .timer { color: #ff5a4e; font-weight: bold; }
+  #mission .stage { display: flex; gap: 4px; margin-top: 5px; }
+  #mission .stage i { flex: 1; height: 6px; background: rgba(255,255,255,0.18); border-radius: 3px; }
+  #mission .stage i.on { background: #ffd23e; }
+  #mission .next { font-size: 12px; color: #7dd8ff; margin-top: 4px; }
+  #police { position: absolute; top: 148px; left: 12px; width: 330px; font-size: 12px; }
+  #police .row { display: flex; justify-content: space-between; padding: 2px 0; }
+  #police .tag { padding: 0 6px; border-radius: 3px; font-weight: bold; font-size: 11px; }
+  .tag.ram { background: #ff5a4e; } .tag.pur { background: #ff9f1c; } .tag.spot { background: #3ec6ff; }
+  .tag.flank { background: #b388ff; } .tag.resp { background: #7dd8ff; } .tag.road { background: #ffd23e; color: #222; }
+  #police .head { color: #ff8a80; font-weight: bold; letter-spacing: 1px; font-size: 11px; }
+  #cash { position: absolute; top: 12px; right: 12px; text-align: right; min-width: 210px; }
+  #cash .money { font-size: 30px; font-weight: bold; color: #5df08a; text-shadow: 0 2px 6px rgba(0,0,0,0.6); }
+  #cash .stars { font-size: 22px; letter-spacing: 3px; color: #ffd23e; text-shadow: 0 2px 6px rgba(0,0,0,0.6); }
+  #cash .stars .off { color: rgba(255,255,255,0.3); }
+  #cash .chip { display: inline-block; font-size: 12px; background: rgba(12,14,26,0.82); border: 1px solid rgba(255,255,255,0.14); border-radius: 6px; padding: 3px 8px; margin-top: 4px; }
+  #cash .rank { font-size: 12px; color: #ffd23e; margin-top: 4px; background: rgba(12,14,26,0.82); border: 1px solid rgba(255,255,255,0.14); border-radius: 6px; padding: 3px 8px; display: inline-block; }
+  #weapons { position: absolute; top: 170px; right: 12px; display: flex; gap: 6px; }
+  #weapons .slot { width: 52px; text-align: center; background: rgba(12,14,26,0.82); border: 1px solid rgba(255,255,255,0.14); border-radius: 6px; padding: 5px 0 3px; }
+  #weapons .slot.sel { border-color: #ffd23e; background: rgba(255,210,62,0.22); }
+  #weapons .slot .n { font-size: 10px; color: #aaa; }
+  #weapons .slot .w { font-size: 15px; }
+  #weapons .slot .a { font-size: 10px; color: #5df08a; }
+  #crew { position: absolute; top: 246px; right: 12px; width: 210px; font-size: 12px; }
+  #crew .row { display: flex; gap: 8px; align-items: center; padding: 4px 0; }
+  #crew .face { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; }
+  #crew .key { margin-left: auto; background: #ffd23e; color: #222; border-radius: 4px; padding: 1px 7px; font-weight: bold; }
+  #airunit { position: absolute; top: 246px; right: 12px; width: 210px; font-size: 12px; display: none; }
+  #minimapBox { position: absolute; left: 12px; bottom: 12px; }
+  #minimap { border-radius: 50%; border: 3px solid rgba(255,255,255,0.75); background: #22303e; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+  #district { position: absolute; left: 150px; bottom: 96px; font-size: 13px; background: rgba(12,14,26,0.82); border: 1px solid rgba(255,255,255,0.14); border-radius: 8px; padding: 6px 8px; }
+  #district b { color: #ffd23e; font-size: 15px; }
+  #vitals { position: absolute; left: 12px; bottom: 156px; width: 150px; font-size: 10px; background: rgba(12,14,26,0.82); border: 1px solid rgba(255,255,255,0.14); border-radius: 8px; padding: 6px 8px; }
+  #vitals .vbar { height: 9px; background: rgba(255,255,255,0.18); border-radius: 5px; overflow: hidden; margin: 3px 0 6px; }
+  #vitals .vbar > i { display: block; height: 100%; }
+  #dialog { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); width: 520px; display: flex; gap: 10px; align-items: center; }
+  #dialog .face { width: 46px; height: 46px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 26px; flex: none; }
+  #dialog .who { color: #7dd8ff; font-weight: bold; font-size: 13px; }
+  #dialog .say { font-size: 14px; line-height: 1.35; }
+  #speedo { position: absolute; right: 12px; bottom: 12px; text-align: right; }
+  #speedo .spd { font-size: 46px; font-weight: bold; line-height: 1; text-shadow: 0 2px 8px rgba(0,0,0,0.65); }
+  #speedo .spd small { font-size: 16px; }
+  #speedo .car { font-size: 15px; color: #7dd8ff; font-weight: bold; }
+  #speedo .cond { width: 180px; margin-left: auto; }
+  #radio { position: absolute; right: 12px; bottom: 128px; font-size: 12px; color: #7dd8ff; text-align: right; background: rgba(12,14,26,0.82); border: 1px solid rgba(255,255,255,0.14); border-radius: 6px; padding: 4px 8px; }
+  #banner { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); font-size: 15px; font-weight: bold; letter-spacing: 1px; background: rgba(12,14,26,0.85); border: 1px solid rgba(255,210,62,0.5); border-radius: 8px; padding: 7px 16px; display: none; }
+  #prompt { position: absolute; left: 50%; top: 58%; transform: translateX(-50%); font-size: 15px; font-weight: bold; background: rgba(12,14,26,0.85); border: 1px solid rgba(255,255,255,0.25); border-radius: 8px; padding: 7px 14px; display: none; }
+  #prompt b { background: #ffd23e; color: #222; border-radius: 4px; padding: 1px 8px; margin-right: 6px; }
+  #cross { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; display: none; }
+  #cross:before, #cross:after { content: ""; position: absolute; background: #fff; box-shadow: 0 0 4px #000; }
+  #cross:before { left: 10px; top: 0; width: 2px; height: 22px; }
+  #cross:after { left: 0; top: 10px; width: 22px; height: 2px; }
+  #title { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: linear-gradient(180deg, rgba(26,8,46,0.25), rgba(26,8,46,0.78)); pointer-events: auto; }
+  #title .card { text-align: center; color: #fff; max-width: 640px; padding: 20px; }
+  #title h1 { margin: 0; font-size: 84px; letter-spacing: 4px; color: #ffd23e; text-shadow: 0 4px 0 #ff5a4e, 0 8px 24px rgba(0,0,0,0.7); font-style: italic; }
+  #title h2 { margin: 0 0 14px; font-size: 22px; letter-spacing: 8px; color: #7dd8ff; }
+  #title p { font-size: 15px; line-height: 1.5; color: #eee; }
+  #title .btns { margin-top: 18px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  #title button, #pause button, #garageUI button { pointer-events: auto; cursor: pointer; font-size: 16px; font-weight: bold; border: 0; border-radius: 8px; padding: 12px 22px; background: #ffd23e; color: #222; }
+  #title button.alt, #pause button.alt, #garageUI button.alt { background: rgba(255,255,255,0.16); color: #fff; border: 1px solid rgba(255,255,255,0.4); }
+  #title .keys { margin-top: 16px; font-size: 12px; color: #bbb; line-height: 1.7; }
+  #pause { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; background: rgba(10,8,20,0.82); pointer-events: auto; color: #fff; }
+  #pause .card { width: 680px; max-width: 92vw; }
+  #pause h1 { color: #ffd23e; margin: 0 0 10px; letter-spacing: 3px; }
+  #pause .cols { display: flex; gap: 16px; }
+  #pause .col { flex: 1; background: rgba(255,255,255,0.07); border-radius: 8px; padding: 12px; font-size: 13px; line-height: 1.7; }
+  #pause .col h3 { margin: 0 0 6px; color: #7dd8ff; }
+  #garageUI { position: fixed; inset: 0; display: none; pointer-events: none; color: #fff; }
+  #garageUI .left { position: absolute; left: 12px; top: 12px; }
+  #garageUI .left h1 { margin: 0; color: #ffd23e; font-size: 30px; letter-spacing: 2px; text-shadow: 0 2px 8px #000; }
+  #garageUI .left .sub { color: #7dd8ff; font-size: 13px; }
+  #garageUI .right { position: absolute; right: 12px; top: 12px; width: 360px; pointer-events: auto; }
+  #garageUI .right .panel { margin-bottom: 10px; }
+  #garageUI .right h3 { color: #ffd23e; }
+  #garageUI .upg { display: flex; justify-content: space-between; font-size: 13px; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.08); cursor: pointer; }
+  #garageUI .upg.sel { background: rgba(255,210,62,0.18); }
+  #garageUI .upg .price { color: #5df08a; font-weight: bold; }
+  #garageUI .upg .locked { color: #ff5a4e; font-weight: bold; }
+  #garageUI .upg .owned { color: #7dd8ff; font-weight: bold; }
+  #garageUI .carcard { position: absolute; left: 12px; bottom: 12px; width: 300px; }
+  #garageUI .carcard .stat { display: flex; justify-content: space-between; font-size: 12px; padding: 2px 0; }
+  #garageUI .carcard .stat .bar { flex: 1; margin: 4px 0 0 10px; }
+  #garageUI .carcard .stat .bar > i { background: #3ec6ff; }
+  #garageUI .back { position: absolute; right: 12px; bottom: 12px; pointer-events: auto; }
+  #toast { position: absolute; top: 64px; left: 50%; transform: translateX(-50%); background: rgba(12,14,26,0.9); border: 1px solid #5df08a; color: #5df08a; border-radius: 8px; padding: 8px 16px; font-weight: bold; display: none; }
+  #status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+</style>
+</head>
+<body>
+<canvas id="game" aria-label="Marisol Bay: drive, walk, fight and run missions in an open-world crime city"></canvas>
+<div id="hud">
+  <div id="mission" class="panel"><h3 id="mName">DOWNTOWN HEAT</h3><div class="sub" id="mObj">Lose the patrol on the downtown streets</div><div class="stage" id="mStage"></div><div class="next" id="mNext">NEXT&nbsp; Lose the heat</div><div style="font-size:12px;margin-top:4px"><span class="timer" id="mTimer">2:29</span> &nbsp;·&nbsp; <span id="mDay">DUSK 18:40</span> &nbsp;·&nbsp; <span id="mRank">RANK 5 · FIXER</span></div></div>
+  <div id="police" class="panel"><div class="head">POLICE RESPONSE · <span id="pCount">6 UNITS</span></div><div id="pList"></div><div style="color:#7dd8ff;font-size:11px;margin-top:3px" id="pFoot">IN SIGHT · CLOSEST 4 M</div></div>
+  <div id="cash"><div class="money" id="cashAmt">$18,450</div><div class="stars" id="stars"></div><div><span class="chip" id="dayChip">● DUSK · DAY 9 · 18:40</span></div><div class="rank" id="rankBar">RANK 5 · FIXER · 3,900 / 5,200 RP</div></div>
+  <div id="weapons"></div>
+  <div id="crew" class="panel"><div style="color:#ffd23e;font-weight:bold;letter-spacing:1px;font-size:11px">CREW · ABILITIES</div><div class="row"><span class="face" style="background:#ff9f1c">M</span><span><b>MIRA KESANG</b><br>SWAP PLATES · Driver</span><span class="key">Z</span></div><div class="row"><span class="face" style="background:#3ec6ff">L</span><span><b>LIO</b><br>QUICK FIX · Mechanic</span><span class="key">X</span></div><div class="row"><span class="face" style="background:#b388ff">K</span><span><b>KIKI</b><br>EYES OUT · Lookout</span><span class="key">C</span></div></div>
+  <div id="airunit" class="panel"><div style="color:#ff8a80;font-weight:bold;letter-spacing:1px;font-size:11px">AIR UNIT · HELI 1</div><div style="font-size:13px;margin-top:4px">SPOTLIGHT — TRACKING<br><span style="color:#7dd8ff">ORBIT 26 M · ALT 20 M</span><br><span style="color:#ffd23e">SEARCHLIGHT ON YOU</span></div></div>
+  <div id="minimapBox"><canvas id="minimap" width="132" height="132"></canvas></div>
+  <div id="district"><b id="dName">DOWNTOWN</b><br><span id="dStand" style="color:#7dd8ff">NEUTRAL · 58</span><div class="bar" style="width:130px"><i id="dBar" style="width:58%"></i></div></div>
+  <div id="vitals"><div style="display:flex;justify-content:space-between"><span><b>MILO KADE</b></span><span id="ammoLbl">PISTOL · 12 ROUNDS</span></div><div>HEALTH</div><div class="vbar"><i id="hpBar" style="width:100%;background:#5df08a"></i></div><div>ARMOUR</div><div class="vbar"><i id="arBar" style="width:55%;background:#3ec6ff"></i></div></div>
+  <div id="dialog" class="panel"><span class="face" id="dlgFace" style="background:#ff9f1c">M</span><span><span class="who" id="dlgWho">MIRA KESANG · CREW · DRIVER</span><br><span class="say" id="dlgSay">Four units on your tail, Milo — lose them through the towers, don't stop for anything.</span></span></div>
+  <div id="speedo"><div class="spd"><span id="spdVal">45</span> <small>km/h</small></div><div class="car" id="carName">KITE COUPE</div><div class="bar cond"><i id="condBar" style="width:84%"></i></div><div style="font-size:11px;color:#bbb">CONDITION <span id="condVal">84%</span></div></div>
+  <div id="radio">♪ BAY 98.5 — PAUSED<br>“Sunset Drive” — Luna Mar</div>
+  <div id="banner"></div>
+  <div id="prompt"></div>
+  <div id="cross"></div>
+  <div id="toast"></div>
+</div>
+<div id="title"><div class="card"><h1>MARISOL BAY</h1><h2>AN ORIGINAL OPEN-WORLD CRIME STORY</h2><p>Milo Kade is back on the island he never existed on. Steal the Kite Coupe, lose the patrol, run the crew's jobs — and don't let the heli's spotlight find you.</p><div class="btns"><button id="btnStart">▶ PLAY NOW</button><button class="alt" id="btnContinue">CONTINUE</button><button class="alt" id="btnGarage">GARAGE</button></div><div class="keys">WASD drive / walk · Space handbrake · E enter / exit car · F steal car · Click shoot · G garage · M map · Esc pause<br>An original game — no names, art or music from any commercial game.</div></div></div>
+<div id="pause"><div class="card"><h1>PAUSED — MARISOL BAY</h1><div class="cols"><div class="col"><h3>MISSIONS</h3><div id="pauseMissions"></div></div><div class="col"><h3>CAREER</h3><div id="pauseCareer"></div><h3 style="margin-top:10px">SAVE SLOTS</h3><div id="pauseSaves"></div></div></div><div style="margin-top:14px;display:flex;gap:10px"><button id="btnResume">RESUME</button><button class="alt" id="btnSave">SAVE GAME</button><button class="alt" id="btnQuit">QUIT TO TITLE</button></div></div></div>
+<div id="garageUI"><div class="left"><h1>HILLSIDE GARAGE</h1><div class="sub">SPRAY &amp; TUNE · PILAR SANTOS — “You break it, I bill it.”</div></div><div class="right"><div class="panel"><h3>SPRAY &amp; TUNE · CAR UPGRADES</h3><div id="upgList"></div></div><div class="panel"><h3>WEAPONS &amp; GEAR</h3><div id="gearList"></div><div style="font-size:12px;color:#bbb;margin-top:6px" id="gearDesc">ARMOUR PLATING — Every car you drive takes half damage from crashes, bullets and blasts.</div><div style="font-size:12px;color:#ffd23e;margin-top:6px">RESPECT LV 5 · TIDE BOSS</div></div></div><div class="carcard panel"><h3 style="margin:0;color:#fff">KITE COUPE</h3><div style="font-size:12px;color:#7dd8ff">CLASS: SPORT · CONDITION <span id="gCond">84%</span></div><div class="stat"><span>TOP SPEED</span><span class="bar"><i id="gSpd" style="width:72%"></i></span><span>188 KM/H</span></div><div class="stat"><span>ACCELERATION</span><span class="bar"><i style="width:64%"></i></span><span>7.2 S 0–100</span></div><div class="stat"><span>ARMOUR</span><span class="bar"><i id="gArm" style="width:60%"></i></span><span>60/100</span></div><div class="stat"><span>HANDLING</span><span class="bar"><i style="width:81%"></i></span><span>81/100</span></div></div><div class="back"><button id="btnGarageBack">◀ BACK TO THE STREET</button></div></div>
+<p id="status" role="status" aria-live="polite"></p>
+<script src="./vendor/three.min.js"></script>
+<script src="./src/config.js"></script>
+<script src="./src/random.js"></script>
+<script src="./src/audio.js"></script>
+<script src="./src/input.js"></script>
+<script src="./src/world.js"></script>
+<script src="./src/vehicles.js"></script>
+<script src="./src/characters.js"></script>
+<script src="./src/police.js"></script>
+<script src="./src/missions.js"></script>
+<script src="./src/garage.js"></script>
+<script src="./src/hud.js"></script>
+<script src="./src/shots.js"></script>
+<script src="./src/main.js"></script>
+</body>
+</html>
